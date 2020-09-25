@@ -43,6 +43,7 @@ $ java -jar cov_configurator.jar path/to/project/folder
 After configuring the desired project (by executing the app), you can generate the coverage report by executing the project tests 
 
 ```bash
+$ cd path/to/project/folder
 $ mvn test jacoco:report
 ```
 
