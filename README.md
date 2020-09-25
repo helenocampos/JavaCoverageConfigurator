@@ -13,7 +13,7 @@ What it does:
 
 How to use: 
 
-You have two options for using this project, building from source or downloading a released .jar.
+You have two options for using this project, building from source or [downloading a released .jar](https://github.com/helenocampos/JavaCoverageConfigurator/releases/download/0.0.1/cov_configurator.jar).
 
 ## Build from source
 
