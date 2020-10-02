@@ -94,9 +94,9 @@ public class App {
     
     private static String getModulesGroupId(Model pom, List<Model> submodules){
         String groupIdModule = pom.getGroupId();
-        if(groupIdModule == null || groupIdModule.isBlank()){
+        if(groupIdModule == null || groupIdModule.isEmpty()){
             for(Model submodule: submodules){
-                if(groupIdModule == null || groupIdModule.isBlank()){
+                if(groupIdModule == null || groupIdModule.isEmpty()){
                     return submodule.getGroupId();
                 }
             }
