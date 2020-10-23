@@ -24,6 +24,7 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
+import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.Resource;
 import org.apache.maven.model.io.DefaultModelWriter;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -74,30 +75,36 @@ public class App {
 
     }
 
-    private static void checkSurefireArgLine(Model pom, String projectPath) {
-        Build build = pom.getBuild();
-        if (build != null) {
-            Map<String, Plugin> plugins = build.getPluginsAsMap();
-            if (plugins != null) {
-                Plugin surefire = plugins.get("org.apache.maven.plugins:maven-surefire-plugin");
-                if (surefire != null) {
-                    Xpp3Dom config = (Xpp3Dom) surefire.getConfiguration();
-                    if (config != null) {
-                        Xpp3Dom argLineNode = config.getChild("argLine");
-                        if (argLineNode != null) {
-                            String argLine = argLineNode.getValue();
-                            if (!argLine.contains("@{argLine}")) {
-                                argLine = argLine + " @{argLine}";
-                                argLineNode.setValue(argLine);
-                                writePom(pom, projectPath);
-                            }
+    private static void setArgLine(Map<String, Plugin> plugins) {
+        if (plugins != null) {
+            Plugin surefire = plugins.get("org.apache.maven.plugins:maven-surefire-plugin");
+            if (surefire != null) {
+                Xpp3Dom config = (Xpp3Dom) surefire.getConfiguration();
+                if (config != null) {
+                    Xpp3Dom argLineNode = config.getChild("argLine");
+                    if (argLineNode != null) {
+                        String argLine = argLineNode.getValue();
+                        if (!argLine.contains("@{argLine}")) {
+                            argLine = argLine + " @{argLine}";
+                            argLineNode.setValue(argLine);
                         }
-
                     }
 
                 }
-            }
 
+            }
+        }
+    }
+
+    private static void checkSurefireArgLine(Model pom, String projectPath) {
+        Build build = pom.getBuild();
+        if (build != null) {
+            setArgLine(build.getPluginsAsMap());
+            PluginManagement pluginManagement = build.getPluginManagement();
+            if(pluginManagement!=null){
+                setArgLine(pluginManagement.getPluginsAsMap());
+            }
+            writePom(pom, projectPath);
         }
     }
 
@@ -131,9 +138,9 @@ public class App {
             if (resources != null) {
                 for (Resource resource : resources) {
                     List<String> includes = resource.getIncludes();
-                    if(includes!=null){
+                    if (includes != null) {
                         for (String include : includes) {
-                            if(include.contains("pom.xml")){
+                            if (include.contains("pom.xml")) {
                                 return true;
                             }
                         }
