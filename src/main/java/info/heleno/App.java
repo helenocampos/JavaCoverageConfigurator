@@ -15,6 +15,7 @@ import java.text.Normalizer;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Contributor;
 import org.apache.maven.model.Dependency;
@@ -25,6 +26,7 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.model.io.DefaultModelWriter;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 /**
  *
@@ -45,6 +47,7 @@ public class App {
                 addJacocoPlugin(parentPom);
                 writePom(parentPom, projectPath);
             }
+            checkSurefireArgLine(parentPom, projectPath);
         }
     }
 
@@ -57,9 +60,9 @@ public class App {
             aggregatorFolder.mkdir();
             Model aggregatorModel = getAggregatorModelPom(parentPom.getArtifactId(),
                     parentPom.getVersion(), parentPom.getGroupId(), modules, groupIdModule);
-            
+
             writePom(aggregatorModel, aggregatorFolder.getAbsolutePath());
-            
+
             addJacocoPlugin(parentPom);
             if (!parentPom.getModules().contains("aggregator")) {
                 parentPom.addModule("aggregator");
@@ -68,6 +71,33 @@ public class App {
             writePom(parentPom, projectPath);
         }
 
+    }
+
+    private static void checkSurefireArgLine(Model pom, String projectPath) {
+        Build build = pom.getBuild();
+        if (build != null) {
+            Map<String, Plugin> plugins = build.getPluginsAsMap();
+            if (plugins != null) {
+                Plugin surefire = plugins.get("org.apache.maven.plugins:maven-surefire-plugin");
+                if (surefire != null) {
+                    Xpp3Dom config = (Xpp3Dom) surefire.getConfiguration();
+                    if (config != null) {
+                        Xpp3Dom argLineNode = config.getChild("argLine");
+                        if (argLineNode != null) {
+                            String argLine = argLineNode.getValue();
+                            if (!argLine.contains("@{argLine}")) {
+                                argLine = argLine + " @{argLine}";
+                                argLineNode.setValue(argLine);
+                                writePom(pom, projectPath);
+                            }
+                        }
+
+                    }
+
+                }
+            }
+
+        }
     }
 
     private static List<Model> getAllSubModulesPoms(Model pom, String projectPath) {
@@ -79,7 +109,7 @@ public class App {
                 if (moduleFolder.exists()) {
                     Model modulePom = readPom(moduleFolder.getAbsolutePath());
                     if (modulePom != null) {
-                        if(!modulePom.getPackaging().equals("pom")){
+                        if (!modulePom.getPackaging().equals("pom")) {
                             modules.add(modulePom);
                         }
                         if (isMultiModuleProject(modulePom)) {
@@ -91,17 +121,17 @@ public class App {
         }
         return modules;
     }
-    
-    private static String getModulesGroupId(Model pom, List<Model> submodules){
+
+    private static String getModulesGroupId(Model pom, List<Model> submodules) {
         String groupIdModule = pom.getGroupId();
-        if(groupIdModule == null || groupIdModule.isEmpty()){
-            for(Model submodule: submodules){
-                if(groupIdModule == null || groupIdModule.isEmpty()){
+        if (groupIdModule == null || groupIdModule.isEmpty()) {
+            for (Model submodule : submodules) {
+                if (groupIdModule == null || groupIdModule.isEmpty()) {
                     return submodule.getGroupId();
                 }
             }
         }
-    
+
         return groupIdModule;
     }
 
