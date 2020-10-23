@@ -24,6 +24,7 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
+import org.apache.maven.model.Resource;
 import org.apache.maven.model.io.DefaultModelWriter;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
@@ -108,7 +109,7 @@ public class App {
                 File moduleFolder = new File(projectPath, moduleFolderName);
                 if (moduleFolder.exists()) {
                     Model modulePom = readPom(moduleFolder.getAbsolutePath());
-                    if (modulePom != null) {
+                    if (modulePom != null && !includesAnotherPom(modulePom)) {
                         if (!modulePom.getPackaging().equals("pom")) {
                             modules.add(modulePom);
                         }
@@ -120,6 +121,27 @@ public class App {
             }
         }
         return modules;
+    }
+
+    private static boolean includesAnotherPom(Model pom) {
+        boolean includesAnotherPom = false;
+        Build build = pom.getBuild();
+        if (build != null) {
+            List<Resource> resources = build.getResources();
+            if (resources != null) {
+                for (Resource resource : resources) {
+                    List<String> includes = resource.getIncludes();
+                    if(includes!=null){
+                        for (String include : includes) {
+                            if(include.contains("pom.xml")){
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return includesAnotherPom;
     }
 
     private static String getModulesGroupId(Model pom, List<Model> submodules) {
