@@ -215,6 +215,9 @@ public class App {
         pomModel.setParent(parent);
         for (Model dependency : dependencies) {
             Dependency dep = new Dependency();
+            if(dependency.getPackaging()!=null){
+                dep.setType(dependency.getPackaging());
+            }
             if (dependency.getGroupId() != null) {
                 dep.setGroupId(dependency.getGroupId());
             } else {
@@ -222,8 +225,6 @@ public class App {
             }
             if (dependency.getArtifactId() != null) {
                 dep.setArtifactId(dependency.getArtifactId());
-            } else {
-
             }
             if (dependency.getVersion() != null) {
                 dep.setVersion(dependency.getVersion());
