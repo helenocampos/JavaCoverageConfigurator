@@ -84,8 +84,8 @@ public class App {
                     Xpp3Dom argLineNode = config.getChild("argLine");
                     if (argLineNode != null) {
                         String argLine = argLineNode.getValue();
-                        if (!argLine.contains("@{argLine}")) {
-                            argLine = argLine + " @{argLine}";
+                        if (!argLine.contains("@{argLine}") && !argLine.contains("${argLine}")) {
+                            argLine = argLine + " ${argLine}";
                             argLineNode.setValue(argLine);
                         }
                     }
