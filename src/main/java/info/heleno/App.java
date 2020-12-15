@@ -29,6 +29,7 @@ import org.apache.maven.model.Resource;
 import org.apache.maven.model.io.DefaultModelWriter;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import sun.tools.jar.resources.jar;
 
 /**
  *
@@ -101,7 +102,7 @@ public class App {
         if (build != null) {
             setArgLine(build.getPluginsAsMap());
             PluginManagement pluginManagement = build.getPluginManagement();
-            if(pluginManagement!=null){
+            if (pluginManagement != null) {
                 setArgLine(pluginManagement.getPluginsAsMap());
             }
             writePom(pom, projectPath);
@@ -214,25 +215,19 @@ public class App {
         parent.setVersion(parentVersion);
         pomModel.setParent(parent);
         for (Model dependency : dependencies) {
-            Dependency dep = new Dependency();
-            if(dependency.getPackaging()!=null){
-                dep.setType(dependency.getPackaging());
+            if (!dependency.getArtifactId().equals("aggregator")) {
+                Dependency dep = getNewDependency(dependency, moduleGroupId);
+                boolean skip = checkSkipJar(dependency);
+                boolean testJar = hasTestJar(dependency);
+                if (!skip) {
+                    pomModel.addDependency(dep);
+                }
+                if (testJar) {
+                    dep = getNewDependency(dependency, moduleGroupId);
+                    dep.setType("test-jar");
+                    pomModel.addDependency(dep);
+                }
             }
-            if (dependency.getGroupId() != null) {
-                dep.setGroupId(dependency.getGroupId());
-            } else {
-                dep.setGroupId(moduleGroupId);
-            }
-            if (dependency.getArtifactId() != null) {
-                dep.setArtifactId(dependency.getArtifactId());
-            }
-            if (dependency.getVersion() != null) {
-                dep.setVersion(dependency.getVersion());
-            } else {
-                dep.setVersion("${project.version}");
-            }
-
-            pomModel.addDependency(dep);
         }
         pomModel.setArtifactId("aggregator");
         pomModel.setGroupId(moduleGroupId);
@@ -254,6 +249,71 @@ public class App {
         pomModel.setBuild(build);
 
         return pomModel;
+    }
+
+    private static Dependency getNewDependency(Model submodule, String moduleGroupId) {
+        Dependency dep = new Dependency();
+        if (submodule.getPackaging() != null) {
+            dep.setType(submodule.getPackaging());
+        }
+        if (submodule.getGroupId() != null) {
+            dep.setGroupId(submodule.getGroupId());
+        } else {
+            dep.setGroupId(moduleGroupId);
+        }
+        if (submodule.getArtifactId() != null) {
+            dep.setArtifactId(submodule.getArtifactId());
+        }
+        if (submodule.getVersion() != null) {
+            dep.setVersion(submodule.getVersion());
+        } else {
+            dep.setVersion("${project.version}");
+        }
+        return dep;
+    }
+
+//função para checar o maven-jar-plugin
+    private static boolean checkSkipJar(Model model) {
+        Build build = model.getBuild();
+        if (build != null) {
+            Map<String, Plugin> plugins = build.getPluginsAsMap();
+            if (plugins != null) {
+                Plugin plugin = plugins.get("org.apache.maven.plugins:maven-jar-plugin");
+                if (plugin != null) {
+                    for (PluginExecution execution : plugin.getExecutions()) {
+                        Xpp3Dom config = (Xpp3Dom) execution.getConfiguration();
+                        if (config != null) {
+                            Xpp3Dom skipNode = config.getChild("skipIfEmpty");
+                            if (skipNode != null) {
+                                return Boolean.parseBoolean(skipNode.getValue().toLowerCase());
+                            }
+
+                        }
+
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasTestJar(Model model) {
+        Build build = model.getBuild();
+        if (build != null) {
+            Map<String, Plugin> plugins = build.getPluginsAsMap();
+            if (plugins != null) {
+                Plugin plugin = plugins.get("org.apache.maven.plugins:maven-jar-plugin");
+                if (plugin != null) {
+                    for (PluginExecution execution : plugin.getExecutions()) {
+
+                        if (execution.getGoals().contains("test-jar")) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public static Model readPom(String projectFolder) {
